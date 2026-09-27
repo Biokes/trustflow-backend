@@ -153,6 +153,18 @@ const EnvSchema = z
     DISCORD_WEBHOOK_URL: z
       .preprocess(blankToUndefined, z.string().url().optional())
       .describe('Discord webhook for dispute notifications'),
+    DISCORD_NOTIFICATION_MAX_RETRIES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(3)
+      .describe('Max retry attempts for failed Discord dispute notifications (#394). Default 3.'),
+    DISCORD_NOTIFICATION_RETRY_BASE_DELAY_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(1000)
+      .describe('Base delay (ms) for exponential backoff in Discord retry logic. Default 1s.'),
 
     // Rate Limiting Configuration
     RATE_LIMIT_ABUSE_WINDOW_SECONDS: z.coerce.number().int().positive().default(300),
@@ -176,9 +188,41 @@ const EnvSchema = z
     IPFS_WEB3_STORAGE_TOKEN: z.string().optional().describe('Web3.Storage API token'),
     IPFS_INFURA_PROJECT_ID: z.string().optional().describe('Infura IPFS project ID'),
     IPFS_INFURA_PROJECT_SECRET: z.string().optional().describe('Infura IPFS project secret'),
+    IPFS_PROVIDER_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(30000)
+      .describe('Timeout for IPFS provider HTTP requests in milliseconds. Default 30s.'),
+    IPFS_REPIN_INTERVAL_MS: z.coerce
+      .number()
+      .int()
+      .optional()
+      .describe('Interval between IPFS repin sweeps in milliseconds'),
+    IPFS_REPIN_SWEEP_CONCURRENCY: optionalPositiveInt()
+      .describe('Max concurrent CID reconciliations per IPFS repin sweep. Default 8.'),
 
     // Reputation System Configuration
     REPUTATION_DECAY_HALF_LIFE_MS: z.coerce.number().int().positive().optional(),
+
+    // Inbound Request Timeout Configuration
+    REQUEST_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(30000)
+      .describe('Global inbound request timeout in milliseconds (408 Request Timeout returned on timeout). Default 30s.'),
+
+    // Gig Expiry Worker Configuration
+    GIG_EXPIRY_SWEEP_INTERVAL_MS: z.coerce
+      .number()
+      .int()
+      .optional()
+      .describe('Gig expiry sweep interval in milliseconds. 0 or negative disables the sweep.'),
+    GIG_EXPIRY_SWEEP_CONCURRENCY: optionalPositiveInt()
+      .describe('Max concurrent gig expirations per sweep. Default 8.'),
+    GIG_EXPIRY_SWEEP_MAX_GIGS: optionalPositiveInt()
+      .describe('Cap on gigs to expire per sweep; continuing on next tick if more remain. Prevents monopolising a tick. Default unlimited.'),
   })
   .superRefine((data, ctx) => {
     const issue = (path: string, message: string) =>
