@@ -24,7 +24,7 @@ import {
   PaginatedGigs,
 } from './gig.entity';
 import { OutboxService } from '../outbox/outbox.service';
-import { amountGreaterThanOrEqual, amountLessThanOrEqual } from '../common/amount';
+import { config } from '../config/env.config';
 
 const GIG_KEY_PREFIX = 'gig:';
 const GIGS_INDEX_KEY = 'gigs:index';
@@ -66,7 +66,7 @@ export class GigService implements OnModuleInit {
    * in-memory fallback so the app still runs without a local Redis.
    */
   onModuleInit(): void {
-    if (!this.redis && process.env.NODE_ENV === 'production') {
+    if (!this.redis && config.NODE_ENV === 'production') {
       throw new Error(
         'GigService requires REDIS_URL to be configured in production — refusing to start ' +
           'with per-instance in-memory storage, which would silently diverge across instances.',
@@ -496,8 +496,7 @@ export class GigService implements OnModuleInit {
   }
 
   private getSearchCacheTtlSeconds(): number {
-    const raw = Number(process.env.GIG_SEARCH_CACHE_TTL_SECONDS);
-    return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_GIG_SEARCH_CACHE_TTL_SECONDS;
+    return config.GIG_SEARCH_CACHE_TTL_SECONDS ?? DEFAULT_GIG_SEARCH_CACHE_TTL_SECONDS;
   }
 
   private async readSearchCache(key: string): Promise<PaginatedGigs | undefined> {
