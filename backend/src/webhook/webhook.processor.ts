@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { SanitizedLogger } from '../common/logging/sanitized-logger';
 import { MetricsService } from '../monitoring/metrics.service';
 import { OutboxService } from '../outbox/outbox.service';
 import { WebhookService } from './webhook.service';
@@ -9,7 +10,7 @@ import { config } from '../config/env.config';
 
 @Injectable()
 export class WebhookProcessor {
-  private readonly logger = new Logger(WebhookProcessor.name);
+  private readonly logger = new SanitizedLogger(WebhookProcessor.name);
 
   constructor(
     private readonly outbox: OutboxService,
@@ -31,7 +32,10 @@ export class WebhookProcessor {
         try {
           await this.webhookService.deliver(event.type, event.payload, event.dedupKey);
           await this.outbox.markDelivered(event, true);
-          this.metrics.increment('webhook_delivery_total', { result: 'delivered', type: event.type });
+          this.metrics.increment('webhook_delivery_total', {
+            result: 'delivered',
+            type: event.type,
+          });
         } catch (error) {
           await this.outbox.retry(event, error, true);
           this.metrics.increment('webhook_delivery_total', { result: 'retry', type: event.type });

@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { SanitizedLogger } from '../common/logging/sanitized-logger';
 import { IpfsPinningService } from './ipfs-pinning.service';
 import { DEFAULT_REPIN_INTERVAL_MS, PinStatus } from './ipfs-pinning.types';
 import { DistributedLockService } from '../common/redis/distributed-lock.service';
@@ -23,7 +24,7 @@ const LOCK_KEY = 'lock:repin-sweep';
  */
 @Injectable()
 export class RepinWorkerService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(RepinWorkerService.name);
+  private readonly logger = new SanitizedLogger(RepinWorkerService.name);
   private timer?: NodeJS.Timeout;
   private currentLockToken?: string;
   /** Guards against a slow sweep still running when the next tick fires. */

@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { SanitizedLogger } from '../common/logging/sanitized-logger';
 import { GigService } from './gig.service';
 import { DEFAULT_GIG_EXPIRY_SWEEP_INTERVAL_MS } from './gig.entity';
 import { DistributedLockService } from '../common/redis/distributed-lock.service';
@@ -27,7 +28,7 @@ const LOCK_KEY = 'lock:gig-expiry-sweep';
  */
 @Injectable()
 export class GigExpiryWorkerService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(GigExpiryWorkerService.name);
+  private readonly logger = new SanitizedLogger(GigExpiryWorkerService.name);
   private timer?: NodeJS.Timeout;
   private currentLockToken?: string;
   private lockRenewalTimer?: NodeJS.Timeout;
@@ -51,7 +52,9 @@ export class GigExpiryWorkerService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.timer = setInterval(() => {
-      this.tick(intervalMs).catch(error => this.logger.error('Gig expiry sweep tick failed', error));
+      this.tick(intervalMs).catch(error =>
+        this.logger.error('Gig expiry sweep tick failed', error),
+      );
     }, intervalMs);
     this.timer.unref?.();
 
@@ -95,7 +98,11 @@ export class GigExpiryWorkerService implements OnModuleInit, OnModuleDestroy {
         return;
       }
       try {
-        const renewed = await this.lock.renewIfOwned(LOCK_KEY, this.currentLockToken, Math.ceil(intervalMs * 1.5));
+        const renewed = await this.lock.renewIfOwned(
+          LOCK_KEY,
+          this.currentLockToken,
+          Math.ceil(intervalMs * 1.5),
+        );
         if (!renewed) {
           this.logger.warn('Lost lock ownership during gig expiry sweep — aborting');
           this.currentLockToken = undefined;
